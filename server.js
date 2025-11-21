@@ -12,9 +12,12 @@ const __dirname = path.dirname(__filename);
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// CORS configuration
 app.use(cors());
 app.use(bodyParser.json());
-app.use(express.static(__dirname)); // Serve static files
+
+// Serve static files from public directory only (security fix)
+app.use(express.static(path.join(__dirname, 'public')));
 
 // Get all notes
 app.get('/api/notes', async (req, res) => {

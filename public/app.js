@@ -1,4 +1,7 @@
-const API_URL = 'http://localhost:3000/api/notes';
+// Dynamic API URL - works in both development and production
+const API_URL = window.location.hostname === 'localhost'
+    ? 'http://localhost:3000/api/notes'
+    : '/api/notes';
 
 // DOM Elements
 const createNoteCollapsed = document.getElementById('create-note-collapsed');

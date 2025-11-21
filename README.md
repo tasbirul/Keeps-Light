@@ -21,7 +21,7 @@
 ### Backend
 - **Node.js**: Runtime environment.
 - **Express.js**: Web framework for handling API requests.
-- **SQLite**: Lightweight, serverless database for storing notes.
+- **MySQL**: Relational database for storing notes (AWS RDS in production).
 
 ## Prerequisites
 
@@ -64,13 +64,17 @@
 
 ```
 Keeps-Light/
-├── app.js              # Frontend logic (API calls, DOM manipulation)
+├── public/             # Frontend files (served to users)
+│   ├── index.html      # Main HTML file
+│   ├── style.css       # Global styles and glassmorphism effects
+│   └── app.js          # Frontend logic (API calls, DOM manipulation)
 ├── db.js               # Database connection setup
-├── index.html          # Main HTML file
-├── package.json        # Project metadata and dependencies
 ├── server.js           # Express backend server
-├── style.css           # Global styles and glassmorphism effects
-├── database.sqlite     # SQLite database file (created on start)
+├── init_db.js          # Database initialization script
+├── schema.sql          # Database schema
+├── package.json        # Project metadata and dependencies
+├── .env.example        # Environment variables template
+├── terraform/          # AWS infrastructure as code
 └── README.md           # Project documentation
 ```
 
