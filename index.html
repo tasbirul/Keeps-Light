@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Keeps Glass</title>
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Outlined" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+    <div class="app-container">
+        <!-- Sidebar -->
+        <aside class="sidebar glass-panel">
+            <div class="logo-area">
+                <span class="material-icons-outlined logo-icon">lightbulb</span>
+                <span class="logo-text">Keeps</span>
+            </div>
+            <nav class="nav-menu">
+                <a href="#" class="nav-item active">
+                    <span class="material-icons-outlined">lightbulb</span>
+                    <span>Notes</span>
+                </a>
+                <a href="#" class="nav-item">
+                    <span class="material-icons-outlined">notifications</span>
+                    <span>Reminders</span>
+                </a>
+                <a href="#" class="nav-item">
+                    <span class="material-icons-outlined">archive</span>
+                    <span>Archive</span>
+                </a>
+                <a href="#" class="nav-item">
+                    <span class="material-icons-outlined">delete</span>
+                    <span>Trash</span>
+                </a>
+            </nav>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Scrollable Content -->
+            <div class="content-scroll-area">
+                <!-- Create Note Input -->
+                <div class="create-note-wrapper">
+                    <div class="create-note-collapsed glass-panel" id="create-note-collapsed">
+                        <span>Take a note...</span>
+                        <div class="mini-actions">
+                            <button class="icon-btn"><span class="material-icons-outlined">check_box</span></button>
+                            <button class="icon-btn"><span class="material-icons-outlined">brush</span></button>
+                            <button class="icon-btn"><span class="material-icons-outlined">image</span></button>
+                        </div>
+                    </div>
+
+                    <div class="create-note-expanded glass-panel hidden" id="create-note-expanded">
+                        <div class="note-header">
+                            <input type="text" id="note-title-input" placeholder="Title">
+                            <button class="icon-btn pin-btn" id="create-pin-btn"><span
+                                    class="material-icons-outlined">push_pin</span></button>
+                        </div>
+                        <textarea id="note-content-input" placeholder="Take a note..." rows="3"></textarea>
+                        <div class="note-footer">
+                            <div class="note-tools">
+                                <button class="icon-btn" title="Color" id="color-btn"><span
+                                        class="material-icons-outlined">palette</span></button>
+                                <button class="icon-btn" title="Image"><span
+                                        class="material-icons-outlined">image</span></button>
+                                <button class="icon-btn" title="Archive"><span
+                                        class="material-icons-outlined">archive</span></button>
+                                <button class="icon-btn" title="More"><span
+                                        class="material-icons-outlined">more_vert</span></button>
+                            </div>
+                            <button class="close-btn" id="close-create-note">Close</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Notes Sections -->
+                <div class="notes-container">
+                    <!-- Pinned Notes -->
+                    <div id="pinned-notes-section" class="notes-section hidden">
+                        <h6 class="section-label">PINNED</h6>
+                        <div class="notes-grid" id="pinned-notes-grid"></div>
+                    </div>
+
+                    <!-- Other Notes -->
+                    <div id="others-label" class="section-label hidden">OTHERS</div>
+                    <div class="notes-grid" id="notes-grid">
+                        <!-- Notes injected here -->
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Edit Modal -->
+    <div class="modal-overlay hidden" id="edit-modal">
+        <div class="modal-content glass-panel">
+            <div class="note-header">
+                <input type="text" id="edit-note-title" placeholder="Title">
+                <button class="icon-btn pin-btn" id="edit-pin-btn"><span
+                        class="material-icons-outlined">push_pin</span></button>
+            </div>
+            <textarea id="edit-note-content" placeholder="Take a note..." rows="5"></textarea>
+            <div class="note-footer">
+                <div class="note-tools">
+                    <button class="icon-btn" title="Color" id="edit-color-btn"><span
+                            class="material-icons-outlined">palette</span></button>
+                    <button class="icon-btn" title="Delete" id="edit-delete-btn"><span
+                            class="material-icons-outlined">delete</span></button>
+                </div>
+                <button class="close-btn" id="close-edit-modal">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+
+</html>
