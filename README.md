@@ -1,10 +1,5 @@
 # Keeps Light
 
-A modern, lightweight note-taking application inspired by Google Keep, featuring a stunning glassmorphism user interface.
-
-![Keeps Light Dashboard](https://via.placeholder.com/800x400?text=Keeps+Light+Dashboard) 
-*(Replace with actual screenshot if available)*
-
 ## Features
 
 - **Create Notes**: Quickly capture thoughts with a title and content.
@@ -37,7 +32,7 @@ A modern, lightweight note-taking application inspired by Google Keep, featuring
 
 1.  **Clone the repository** (or download the source code):
     ```bash
-    git clone <repository-url>
+    git clone git@github.com:tasbirul/Keeps-Light.git
     cd Keeps-Light
     ```
 
@@ -86,6 +81,3 @@ Keeps-Light/
 - `PUT /api/notes/:id`: Update an existing note.
 - `DELETE /api/notes/:id`: Delete a note.
 
-## License
-
-This project is open source and available under the [MIT License](LICENSE).
