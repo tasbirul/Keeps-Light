@@ -1,7 +1,7 @@
 # Launch Template
 resource "aws_launch_template" "app" {
   name_prefix   = "${var.project_name}-lt"
-  image_id      = "ami-0dda28e5df2d25176" # Amazon Linux 2023 (us-east-1)
+  image_id      = "ami-0fa3fe0fa7920f68e" # Amazon Linux 2023 (us-east-1)
   instance_type = "t3.micro"
   key_name      = var.key_name
 

@@ -19,7 +19,8 @@ resource "aws_db_instance" "main" {
   parameter_group_name = "default.mysql8.0"
   skip_final_snapshot  = true
   publicly_accessible  = false
-  multi_az             = false 
+  multi_az             = false
+  db_name              = "keeps_light"
 
   vpc_security_group_ids = [aws_security_group.db.id]
   db_subnet_group_name   = aws_db_subnet_group.main.name

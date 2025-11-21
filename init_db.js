@@ -7,11 +7,12 @@ dotenv.config();
 
 const init = async () => {
     try {
-        // Create connection without database selected first
+        // Create connection
         const connection = await mysql.createConnection({
             host: process.env.DB_HOST,
             user: process.env.DB_USER,
-            password: process.env.DB_PASSWORD
+            password: process.env.DB_PASSWORD,
+            database: process.env.DB_NAME
         });
 
         console.log('Connected to MySQL server.');

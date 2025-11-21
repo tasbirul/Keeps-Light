@@ -12,9 +12,12 @@ npm install
 # Set Environment Variables
 echo "DB_HOST=${db_host}" >> .env
 echo "DB_USER=${db_user}" >> .env
-echo "DB_PASS=${db_pass}" >> .env
+echo "DB_PASSWORD=${db_pass}" >> .env
 echo "DB_NAME=${db_name}" >> .env
 echo "PORT=3000" >> .env
+
+# Initialize Database
+node init_db.js
 
 npm install -g pm2
 pm2 start server.js --name keeps-light
