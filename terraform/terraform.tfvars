@@ -1,6 +1,0 @@
-aws_region   = "us-east-1"
-project_name = "keeps-light"
-db_password = "KeepsLight2024"       
-my_ip        = "0.0.0.0/0"          
-github_repo  = "https://github.com/tasbirul/Keeps-Light.git"
-key_name     = "mykey"

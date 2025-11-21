@@ -1,6 +1,0 @@
-aws_region  = "us-east-1"
-project_name = "keeps-light"
-db_password  = "ChangeMe123!"       # CHANGE THIS to a secure password
-my_ip        = "YOUR_IP_ADDRESS/32" # CHANGE THIS (e.g. 1.2.3.4/32)
-github_repo  = "https://github.com/tasbirul/Keeps-Light.git"
-key_name     = "mykey"
