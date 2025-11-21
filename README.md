@@ -10,6 +10,33 @@ This is a Google Keep-inspired web application with a Node.js backend and MySQL 
 
 The application runs on AWS with the following components:
 
+```mermaid
+graph TB
+    User((User)) -->|HTTP:80| IGW[Internet Gateway]
+    IGW --> ALB[Application Load Balancer]
+
+    subgraph VPC [VPC 10.0.0.0/16]
+        subgraph Public_Subnets [Public Subnets]
+            ALB -->|HTTP:3000| ASG[Auto Scaling Group]
+            ASG --> EC2_1[EC2 Instance AZ-a]
+            ASG --> EC2_2[EC2 Instance AZ-b]
+        end
+
+        subgraph Private_Subnets [Private Subnets]
+            EC2_1 -->|SQL:3306| RDS[RDS MySQL Database]
+            EC2_2 -->|SQL:3306| RDS
+        end
+    end
+
+    classDef aws fill:#FF9900,stroke:#232F3E,stroke-width:2px,color:white;
+    classDef db fill:#3B48CC,stroke:#232F3E,stroke-width:2px,color:white;
+    classDef net fill:#8C4FFF,stroke:#232F3E,stroke-width:2px,color:white;
+
+    class EC2_1,EC2_2,ASG aws;
+    class RDS db;
+    class ALB,IGW net;
+```
+
 - **Application Load Balancer** - Distributes traffic across EC2 instances
 - **EC2 Auto Scaling Group** - Hosts the Node.js application
 - **RDS MySQL** - Managed database for persistent storage
