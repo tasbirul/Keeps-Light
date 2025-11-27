@@ -26,14 +26,17 @@ resource "aws_iam_role_policy_attachment" "ecs_task_execution_role_policy" {
 }
 
 # CloudWatch Log Group for container logs
-resource "aws_cloudwatch_log_group" "app" {
-  name              = "/ecs/${var.project_name}"
-  retention_in_days = 7
+# Note: Log group will be created automatically by ECS when tasks start
+# Commented out due to IAM permission limitations
+# resource "aws_cloudwatch_log_group" "app" {
+#   name = "/ecs/${var.project_name}"
+# }
 
-  tags = {
-    Name = "${var.project_name}-logs"
-  }
+# Use a local value for the log group name
+locals {
+  log_group_name = "/ecs/${var.project_name}"
 }
+
 
 # ECS Task Definition
 resource "aws_ecs_task_definition" "app" {
@@ -90,7 +93,7 @@ resource "aws_ecs_task_definition" "app" {
       logConfiguration = {
         logDriver = "awslogs"
         options = {
-          "awslogs-group"         = aws_cloudwatch_log_group.app.name
+          "awslogs-group"         = local.log_group_name
           "awslogs-region"        = var.aws_region
           "awslogs-stream-prefix" = "ecs"
         }

@@ -31,9 +31,9 @@ resource "aws_security_group" "app" {
   vpc_id      = aws_vpc.main.id
 
   ingress {
-    description     = "HTTP from ALB"
-    from_port       = 3000
-    to_port         = 3000
+    description     = "HTTP from ALB (Dynamic Ports)"
+    from_port       = 32768
+    to_port         = 65535
     protocol        = "tcp"
     security_groups = [aws_security_group.alb.id]
   }
