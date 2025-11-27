@@ -11,15 +11,25 @@ resource "aws_lb" "main" {
 }
 
 resource "aws_lb_target_group" "app" {
-  name     = "${var.project_name}-tg"
-  port     = 3000
-  protocol = "HTTP"
-  vpc_id   = aws_vpc.main.id
+  name        = "${var.project_name}-tg"
+  port        = 80 # Not used with dynamic port mapping
+  protocol    = "HTTP"
+  vpc_id      = aws_vpc.main.id
+  target_type = "instance" # Required for EC2 launch type
 
   health_check {
     path                = "/api/notes"
     healthy_threshold   = 2
     unhealthy_threshold = 10
+    timeout             = 5
+    interval            = 30
+    matcher             = "200"
+  }
+
+  deregistration_delay = 30
+
+  tags = {
+    Name = "${var.project_name}-tg"
   }
 }
 
