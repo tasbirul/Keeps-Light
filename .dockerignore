@@ -1,0 +1,67 @@
+# Dependencies
+node_modules
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# Git
+.git
+.gitignore
+.gitattributes
+
+
+# Documentation
+README.md
+*.md
+!schema.sql
+
+# Terraform
+terraform/
+*.tf
+*.tfvars
+*.tfstate
+*.tfstate.backup
+.terraform/
+.terraform.lock.hcl
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Testing
+test/
+tests/
+*.test.js
+*.spec.js
+coverage/
+.nyc_output/
+
+# Build artifacts
+dist/
+build/
+*.log
+
+# Assets not needed in container
+assets/
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.svg
+!public/**
+
+# Misc
+.editorconfig
+.eslintrc*
+.prettierrc*
+docker-compose*.yml
+Dockerfile*
