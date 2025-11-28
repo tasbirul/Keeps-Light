@@ -1,352 +1,396 @@
 # Keeps Light
 
-A cloud-native note-taking application showcasing multiple AWS deployment strategies with Infrastructure as Code.
+> **AWS Infrastructure demonstrating containerized microservices deployment using ECS on EC2**
 
-## 🎯 Overview
+[![AWS](https://img.shields.io/badge/AWS-Cloud%20Native-FF9900?logo=amazon-aws)](https://aws.amazon.com/)
+[![Terraform](https://img.shields.io/badge/IaC-Terraform-7B42BC?logo=terraform)](https://www.terraform.io/)
+[![ECS](https://img.shields.io/badge/Container-ECS%20on%20EC2-FF9900)](https://aws.amazon.com/ecs/)
+[![Docker](https://img.shields.io/badge/Docker-Containerized-2496ED?logo=docker)](https://www.docker.com/)
 
-This is a Google Keep-inspired web application with a Node.js backend and MySQL database. The project demonstrates **two different deployment approaches** on AWS using Terraform, allowing you to choose the best strategy for your needs.
+## Table of Contents
 
-## 🚀 Deployment Options
+- [Executive Summary](#-executive-summary)
+- [AWS Architecture Overview](#-aws-architecture-overview)
+- [Infrastructure Components](#-infrastructure-components)
+- [Network Architecture](#-network-architecture)
+- [Security Architecture](#-security-architecture)
 
-This repository contains **two deployment strategies** in separate branches:
+## Executive Summary
 
-### 1. Traditional EC2 Deployment (Branch: `main`)
-**Status:** ✅ Production-ready  
-**Best for:** Learning AWS fundamentals, simple deployments
+**Keeps Light** is a production-ready, Google Keep-inspired note-taking application built on AWS cloud infrastructure. This project showcases enterprise-level DevOps practices, containerization strategies, and Infrastructure as Code principles using Terraform.
 
-- Auto Scaling Groups with user_data bootstrapping
-- PM2 process management
-- Direct EC2 deployment
-- **Cost:** ~$40/month (FREE with AWS free tier)
+### Key Highlights
 
-[View EC2 Deployment Guide →](./README_EC2.md)
+- **Fully Containerized**: Docker-based deployment with multi-stage builds for optimal image size
+- **Container Orchestration**: Amazon ECS with EC2 launch type for cost-effective container management
+- **Infrastructure as Code**: Terraform-managed infrastructure for reproducible deployments
+- **High Availability**: Multi-AZ deployment with Application Load Balancer
+- **Security-First**: Private subnet isolation, security group segmentation, and IAM best practices
+- **Production-Ready**: Automated health checks, rolling deployments, and zero-downtime updates
+- **Cost-Optimized**: ~$0-2/month with AWS Free Tier, ~$39/month without
 
----
+### Technology Stack
 
-### 2. ECS on EC2 Deployment (Branch: `ecs-ec2`) ⭐ **Current Branch**
-**Status:** ✅ Production-ready  
-**Best for:** Container orchestration, zero-downtime deployments
+| Layer | Technology |
+|-------|------------|
+| **Frontend** | HTML5, Vanilla JavaScript, CSS3 (Responsive Glassmorphism UI) |
+| **Backend** | Node.js 18 (ES Modules), Express.js 4.x |
+| **Database** | Amazon RDS MySQL 8.0 (db.t3.micro) |
+| **Container Registry** | Amazon ECR with vulnerability scanning |
+| **Orchestration** | Amazon ECS with EC2 capacity providers |
+| **Load Balancing** | Application Load Balancer (ALB) |
+| **Networking** | Amazon VPC with public/private subnets, Internet Gateway |
+| **Monitoring** | CloudWatch Container Insights, CloudWatch Logs |
+| **Infrastructure** | Terraform 1.0+ (HashiCorp Configuration Language) |
 
-- Docker containerization
-- ECS cluster management
-- ECR image registry
-- Rolling updates with health checks
-- CloudWatch Container Insights
-- **Cost:** ~$39/month (FREE with AWS free tier)
+## AWS Architecture Overview
 
-[View ECS Deployment Guide →](./docs/ECS_DEPLOYMENT.md)
+### High-Level Architecture Diagram
 
----
+### Data Flow
 
-## 📊 Deployment Comparison
+1. **User Request** → ALB (Port 80) → Health Check → Target Group
+2. **ALB** → ECS Service → ECS Tasks (via dynamic port mapping)
+3. **ECS Tasks** → Application Logic (Express.js)
+4. **Application** → RDS MySQL (Private Subnet, Port 3306)
+5. **Response** ← Application ← Database
+6. **Response** ← ALB ← User
 
-| Feature | EC2 (`main`) | ECS on EC2 (`ecs-ec2`) |
-|---------|--------------|------------------------|
-| **Deployment Method** | user_data script | Docker containers |
-| **Process Management** | PM2 | ECS |
-| **Deployment Time** | 6-8 minutes | 3-5 minutes |
-| **Zero Downtime Updates** | ⚠️ Manual | ✅ Built-in |
-| **Scaling** | Instance-level | Task + Instance |
-| **Monitoring** | Basic CloudWatch | Container Insights |
-| **Rollback** | Manual | ✅ Automated |
-| **Cost** | ~$40/month | ~$39/month |
-| **Free Tier Eligible** | ✅ Yes | ✅ Yes |
+## Infrastructure Components
 
----
+### 1. **Amazon VPC (Virtual Private Cloud)**
 
-## 🏗️ Architecture (ECS on EC2)
+**File**: [`terraform/vpc.tf`](terraform/vpc.tf)
 
-```
-Internet → ALB → ECS Service → Tasks (Containers) → RDS MySQL
-                                  ↓
-                              EC2 Instances
-                                  ↑
-                              ECR (Docker Images)
-```
+- **CIDR Block**: `10.0.0.0/16` (65,536 IP addresses)
+- **DNS Support**: Enabled
+- **DNS Hostnames**: Enabled
 
-### Components:
+#### Subnet Architecture
 
-- **Application Load Balancer** - Distributes traffic with health checks
-- **ECS Cluster** - Container orchestration
-- **ECS Tasks** - Running Docker containers
-- **EC2 Auto Scaling Group** - Hosts ECS tasks
-- **ECR** - Private Docker registry
-- **RDS MySQL** - Managed database
-- **VPC** - Network isolation with public/private subnets
-- **CloudWatch** - Centralized logging and monitoring
+| Subnet Type | CIDR Block | Availability Zone | Purpose |
+|-------------|------------|-------------------|---------|
+| Public-1 | `10.0.1.0/24` | us-east-1a | ALB, ECS EC2 Instances |
+| Public-2 | `10.0.2.0/24` | us-east-1b | ALB, ECS EC2 Instances |
+| Private-1 | `10.0.3.0/24` | us-east-1a | RDS MySQL Primary |
+| Private-2 | `10.0.4.0/24` | us-east-1b | RDS MySQL Standby (Multi-AZ) |
 
----
+**Key Features**:
 
-## 💻 Tech Stack
+- Internet Gateway for public subnet internet access
+- Public route table with `0.0.0.0/0` → IGW routing
+- Private subnets isolated from direct internet access
+- Multi-AZ deployment for high availability
 
-**Backend:**
-- Node.js 18
-- Express.js
-- MySQL 8.0 (RDS)
+### 2. **Amazon ECS (Elastic Container Service)**
 
-**Frontend:**
-- HTML/CSS/JavaScript
-- Responsive glassmorphism UI
-- Material Icons
+**Files**:
 
-**Infrastructure:**
-- Terraform for IaC
-- Docker & Docker Compose
-- AWS (VPC, EC2, ECS, ECR, RDS, ALB)
-- CloudWatch for monitoring
+- [`terraform/ecs_cluster.tf`](terraform/ecs_cluster.tf)
+- [`terraform/ecs_task.tf`](terraform/ecs_task.tf)
+- [`terraform/ecs_service.tf`](terraform/ecs_service.tf)
+- [`terraform/ecs_ec2.tf`](terraform/ecs_ec2.tf)
 
----
+#### ECS Cluster Configuration
 
-## 📁 Project Structure
-
-```
-├── Dockerfile               # Container image definition
-├── .dockerignore           # Docker build exclusions
-├── docker-compose.yml      # Local development setup
-├── public/                 # Frontend files
-│   ├── index.html
-│   ├── style.css
-│   └── app.js
-├── terraform/              # Infrastructure as Code
-│   ├── ecr.tf             # Container registry
-│   ├── ecs_cluster.tf     # ECS cluster
-│   ├── ecs_task.tf        # Task definition
-│   ├── ecs_service.tf     # ECS service
-│   ├── ecs_ec2.tf         # EC2 for ECS
-│   ├── vpc.tf             # Networking
-│   ├── database.tf        # RDS
-│   ├── alb.tf             # Load balancer
-│   ├── security.tf        # Security groups
-│   ├── variables.tf       # Input variables
-│   └── outputs.tf         # Outputs
-├── docs/                   # Documentation
-│   └── ECS_DEPLOYMENT.md  # Deployment guide
-├── server.js              # Express server
-├── db.js                  # Database connection
-├── schema.sql             # Database schema
-└── package.json
+```hcl
+Cluster Name: keeps-light-cluster
+Launch Type: EC2
+Container Insights: ENABLED
+Capacity Provider: Auto Scaling Group backed
 ```
 
----
+#### ECS Task Definition
 
-## 🚀 Quick Start (ECS Deployment)
+**Container Specifications**:
 
-### Prerequisites
+- **Image**: `<ECR_URL>:latest` (from Amazon ECR)
+- **CPU**: 256 units (0.25 vCPU)
+- **Memory**: 512 MB
+- **Network Mode**: Bridge (for dynamic port mapping)
+- **Port Mapping**: Container Port 3000 → Host Port 0 (dynamic)
 
-- AWS account with configured credentials
-- Terraform installed (v1.0+)
-- Docker installed
-- AWS CLI configured
-- SSH key pair in AWS
-
-### Deploy in 3 Steps
+**Environment Variables**:
 
 ```bash
-# 1. Clone and checkout ECS branch
-git clone https://github.com/tasbirul/Keeps-Light.git
-cd Keeps-Light
-git checkout ecs-ec2
-
-# 2. Build and push Docker image
-cd terraform
-terraform init
-terraform apply -target=aws_ecr_repository.keeps_light
-export ECR_URL=$(terraform output -raw ecr_repository_url)
-
-aws ecr get-login-password --region us-east-1 | \
-  docker login --username AWS --password-stdin $ECR_URL
-
-cd ..
-docker build -t keeps-light:latest .
-docker tag keeps-light:latest $ECR_URL:latest
-docker push $ECR_URL:latest
-
-# 3. Deploy infrastructure
-cd terraform
-terraform apply
+NODE_ENV=production
+PORT=3000
+DB_HOST=<RDS_ENDPOINT>
+DB_NAME=keeps_light
+DB_USER=admin
+DB_PASSWORD=<SENSITIVE>
 ```
 
-**Deployment time:** ~5-10 minutes
+**Health Check Configuration**:
 
-**Access your application:**
-```bash
-terraform output alb_dns_name
+```json
+{
+  "command": ["CMD-SHELL", "node -e \"require('http').get('http://localhost:3000/api/notes', ...)\""],
+  "interval": 30,
+  "timeout": 5,
+  "retries": 3,
+  "startPeriod": 10
+}
 ```
 
-For detailed instructions, see [ECS Deployment Guide](./docs/ECS_DEPLOYMENT.md)
+**Logging**:
 
----
+- **Driver**: awslogs
+- **Log Group**: `/ecs/keeps-light`
+- **Region**: `us-east-1`
+- **Stream Prefix**: `ecs`
 
-## 🐳 Local Development
+#### ECS Service Configuration
 
-### With Docker Compose (Recommended)
-
-```bash
-# Start application and MySQL
-docker-compose up -d
-
-# Access at http://localhost:3000
-
-# View logs
-docker-compose logs -f app
-
-# Stop services
-docker-compose down
+```hcl
+Service Name: keeps-light-service
+Desired Count: 2 tasks
+Launch Type: EC2
+Deployment Strategy:
+  - Maximum Percent: 200%
+  - Minimum Healthy Percent: 50%
 ```
 
-### Without Docker
+**Deployment Behavior**:
 
-```bash
-npm install
-npm start
+- Supports zero-downtime rolling updates
+- New tasks start before old tasks terminate
+- Automatic rollback on health check failures
+
+### 3. **Auto Scaling Group (ASG) for ECS**
+
+**File**: [`terraform/ecs_ec2.tf`](terraform/ecs_ec2.tf)
+
+**Configuration**:
+
+```hcl
+Instance Type: t3.micro 
+AMI: Amazon ECS-Optimized AMI (Amazon Linux 2)
+Min Size: 1 instance
+Max Size: 2 instances
+Desired Capacity: 1 instance
+Health Check Type: EC2
+Health Check Grace Period: 300 seconds
 ```
 
-Application runs on `http://localhost:3000`
-
----
-
-## ✨ Features
-
-- ✅ Create, edit, and delete notes
-- 📌 Pin important notes
-- 🎨 Color-code notes (12 color options)
-- 💾 Persistent storage in MySQL
-- 📱 Responsive glassmorphism design
-- 🔄 Zero-downtime deployments (ECS)
-- 📊 Container monitoring and insights
-- 🚀 Auto-scaling capabilities
-
----
-
-## 🎓 Skills Demonstrated
-
-This project showcases:
-
-- ✅ **AWS Infrastructure** - VPC, EC2, ECS, ECR, RDS, ALB, Auto Scaling
-- ✅ **Infrastructure as Code** - Terraform with modular design
-- ✅ **Containerization** - Docker, multi-stage builds, optimization
-- ✅ **Container Orchestration** - ECS cluster, services, tasks
-- ✅ **CI/CD Concepts** - Automated deployments, rolling updates
-- ✅ **Monitoring** - CloudWatch Logs, Container Insights
-- ✅ **Security** - IAM roles, Security Groups, private subnets
-- ✅ **Cost Optimization** - Free tier utilization, resource efficiency
-- ✅ **High Availability** - Multi-AZ deployment, health checks
-- ✅ **DevOps Best Practices** - IaC, containerization, automation
-
----
-
-## 💰 Cost Estimate
-
-### Monthly Costs (us-east-1)
-
-| Service | Configuration | Cost |
-|---------|--------------|------|
-| EC2 t3.micro | 1 instance, 24/7 | $7.50 |
-| RDS db.t3.micro | Single-AZ, 20GB | $15.00 |
-| ALB | Standard | $16.00 |
-| ECR Storage | 200MB | $0.02 |
-| CloudWatch Logs | 1GB | $0.50 |
-| **Total** | | **~$39/month** |
-
-### With AWS Free Tier (First 12 Months)
-
-- EC2: 750 hours/month FREE
-- RDS: 750 hours/month FREE
-- ALB: 750 hours/month FREE
-- ECR: 500MB FREE
-- CloudWatch: 5GB FREE
-
-**Total with free tier: ~$0-2/month** 🎉
-
----
-
-## 📚 Documentation
-
-- [ECS Deployment Guide](./docs/ECS_DEPLOYMENT.md) - Complete deployment walkthrough
-- [EC2 Deployment Guide](./README_EC2.md) - Traditional EC2 deployment (main branch)
-- [Docker Guide](./DOCKER.md) - Local Docker development (if exists)
-- [Architecture Comparison](./docs/ARCHITECTURE.md) - Detailed comparison (if exists)
-
----
-
-## 🔄 Switching Between Deployment Strategies
+**Launch Template User Data**:
 
 ```bash
-# Switch to traditional EC2 deployment
-git checkout main
-
-# Switch to ECS deployment
-git checkout ecs-ec2
-
-# Compare branches
-git diff main ecs-ec2 -- terraform/
+#!/bin/bash
+echo ECS_CLUSTER=keeps-light-cluster >> /etc/ecs/ecs.config
+echo ECS_ENABLE_CONTAINER_METADATA=true >> /etc/ecs/ecs.config
 ```
 
----
+**ECS Capacity Provider**:
 
-## 🐛 Troubleshooting
+- Managed scaling enabled
+- Target capacity: 80%
+- Automatic instance scaling based on task demand
 
-### ECS Tasks Not Starting
+### 4. **Application Load Balancer (ALB)**
 
-```bash
-# Check service events
-aws ecs describe-services \
-  --cluster keeps-light-cluster \
-  --services keeps-light-service \
-  --query 'services[0].events[0:5]'
+**File**: [`terraform/alb.tf`](terraform/alb.tf)
+
+**Configuration**:
+
+```hcl
+Name: keeps-light-alb
+Type: Application Load Balancer
+Scheme: Internet-facing
+Subnets: public-1, public-2 (Multi-AZ)
+Security Group: alb-sg (Port 80 from 0.0.0.0/0)
 ```
 
-### View Container Logs
+**Target Group**:
 
-```bash
-# Tail logs in real-time
-aws logs tail /ecs/keeps-light --follow
+- **Protocol**: HTTP
+- **Target Type**: Instance (for ECS EC2 launch type)
+- **Deregistration Delay**: 30 seconds
+- **Health Check**:
+  - Path: `/api/notes`
+  - Interval: 30 seconds
+  - Timeout: 5 seconds
+  - Healthy Threshold: 2
+  - Unhealthy Threshold: 10
+  - Success Code: 200
+
+**Listener**:
+
+- Port: 80 (HTTP)
+- Default Action: Forward to target group
+
+> **Production Note**: For production environments, add HTTPS listener with SSL/TLS certificate from AWS Certificate Manager
+
+### 5. **Amazon RDS MySQL**
+
+**File**: [`terraform/database.tf`](terraform/database.tf)
+
+**Database Specifications**:
+
+```hcl
+Engine: MySQL 8.0
+Instance Class: db.t3.micro 
+Storage: 20 GB gp2 (General Purpose SSD)
+Multi-AZ: Enabled
+Publicly Accessible: false
+Backup Retention: 0 days (configurable)
+Database Name: keeps_light
+Master Username: admin
+Master Password: <var.db_password>
 ```
 
-### Health Check Failures
+**Database Schema**:
 
-```bash
-# Check target group health
-aws elbv2 describe-target-health \
-  --target-group-arn $(terraform output -raw target_group_arn)
+```sql
+CREATE TABLE notes (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    title VARCHAR(255),
+    content TEXT,
+    is_pinned TINYINT(1) DEFAULT 0,
+    color VARCHAR(50) DEFAULT 'bg-default',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
 ```
 
-For more troubleshooting tips, see the [ECS Deployment Guide](./docs/ECS_DEPLOYMENT.md#troubleshooting).
+**Subnet Group**:
 
----
+- Subnets: private-1, private-2 (Multi-AZ capable)
+- Isolated from internet access
 
-## 🤝 Contributing
+### 6. **Amazon ECR (Elastic Container Registry)**
 
-This is a portfolio project, but suggestions and improvements are welcome!
+**File**: [`terraform/ecr.tf`](terraform/ecr.tf)
 
----
+**Repository Configuration**:
 
-## 📄 License
+```hcl
+Repository Name: keeps-light
+Image Tag Mutability: MUTABLE
+Scan on Push: ENABLED (vulnerability scanning)
+```
 
-ISC
+**Docker Image Details**:
 
----
+- **Base Image**: `node:18-alpine` (multi-stage build)
+- **Final Image Size**: ~80-100 MB (optimized)
+- **Security**: Non-root user (nodejs:1001)
+- **Init System**: dumb-init for proper signal handling
 
-## 👤 Author
+## Network Architecture
 
-**Tasbirul Islam**
+### VPC Design Principles
 
-- Portfolio: [Your Portfolio URL]
-- LinkedIn: [Your LinkedIn]
-- GitHub: [@tasbirul](https://github.com/tasbirul)
+1. **Isolation**: Private subnets for data layer (RDS)
+2. **High Availability**: Multi-AZ deployment across us-east-1a and us-east-1b
+3. **Internet Connectivity**: Public subnets with Internet Gateway
+4. **Scalability**: /24 subnets provide 256 IP addresses each
 
----
+### Route Tables
 
-## 🌟 Acknowledgments
+**Public Route Table**:
 
-- Inspired by Google Keep
-- Built with AWS best practices
-- Terraform AWS Provider documentation
-- Docker best practices
+```
+Destination          Target
+10.0.0.0/16         local
+0.0.0.0/0           igw-xxxxxx (Internet Gateway)
+```
 
----
+**Private Subnets**:
 
-**Current Branch:** `ecs-ec2` (ECS on EC2 Deployment)  
-**Alternative Branch:** `main` (Traditional EC2 Deployment)
+- No route to Internet Gateway (isolated)
+- Access to internet via NAT Gateway (optional, not implemented for cost)
 
-*Choose the deployment strategy that best fits your needs!*
+### Network Flow
+
+```
+Internet (0.0.0.0/0)
+    ↓
+Internet Gateway (igw)
+    ↓
+Public Subnets (10.0.1.0/24, 10.0.2.0/24)
+    ↓
+ALB → ECS Tasks → RDS (Private Subnets)
+```
+
+## Security Architecture
+
+**File**: [`terraform/security.tf`](terraform/security.tf)
+
+### Defense-in-Depth Strategy
+
+#### Security Group Segmentation
+
+**1. ALB Security Group** (`alb-sg`)
+
+```hcl
+Ingress:
+  - Port: 80 (HTTP)
+    Source: 0.0.0.0/0 (Internet)
+    Protocol: TCP
+
+Egress:
+  - All traffic allowed (to forward to ECS tasks)
+```
+
+**2. Application Security Group** (`app-sg`)
+
+```hcl
+Ingress:
+  - Ports: 32768-65535 (Dynamic port range for ECS)
+    Source: alb-sg (Only from ALB)
+    Protocol: TCP
+  
+  - Port: 22 (SSH)
+    Source: <Your IP>/32 (Admin access)
+    Protocol: TCP
+
+Egress:
+  - All traffic allowed (for RDS, internet, AWS API calls)
+```
+
+**3. Database Security Group** (`db-sg`)
+
+```hcl
+Ingress:
+  - Port: 3306 (MySQL)
+    Source: app-sg (Only from application tier)
+    Protocol: TCP
+
+Egress:
+  - None (no outbound requirements)
+```
+
+### IAM Roles and Policies
+
+#### ECS Task Execution Role
+
+```hcl
+Role: keeps-light-ecs-task-execution-role
+Managed Policy: AmazonECSTaskExecutionRolePolicy
+
+Permissions:
+  - Pull images from ECR
+  - Write to CloudWatch Logs
+  - Retrieve secrets from Secrets Manager (if used)
+```
+
+#### ECS Instance Role
+
+```hcl
+Role: keeps-light-ecs-instance-role
+Managed Policy: AmazonEC2ContainerServiceforEC2Role
+
+Permissions:
+  - Register/deregister with ECS cluster
+  - Pull container images from ECR
+  - Send CloudWatch metrics and logs
+```
+
+## Acknowledgments
+
+- **AWS**: For comprehensive documentation and Free Tier
+- **HashiCorp**: For Terraform and excellent learning resources
+- **Docker**: For containerization technology
+- **Node.js Community**: For Express.js and ecosystem
+- **Google Keep**: For UI/UX inspiration
