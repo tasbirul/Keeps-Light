@@ -1,15 +1,20 @@
 # Keeps Light
 
-> **AWS Infrastructure demonstrating containerized microservices deployment using ECS on EC2**
+**Production-ready AWS infrastructure showcasing containerized deployment with Amazon ECS on EC2, featuring automated CI/CD pipelines and Infrastructure as Code.**
 
 [![AWS](https://img.shields.io/badge/AWS-Cloud%20Native-FF9900?logo=amazon-aws)](https://aws.amazon.com/)
 [![Terraform](https://img.shields.io/badge/IaC-Terraform-7B42BC?logo=terraform)](https://www.terraform.io/)
 [![ECS](https://img.shields.io/badge/Container-ECS%20on%20EC2-FF9900)](https://aws.amazon.com/ecs/)
 [![Docker](https://img.shields.io/badge/Docker-Containerized-2496ED?logo=docker)](https://www.docker.com/)
 
+## Architecture Diagram
+
+![Architecture Diagram](./assets/architecture.png)
+
 ## Table of Contents
 
 - [Executive Summary](#-executive-summary)
+- [Quick Start Guide](#-quick-start-guide)
 - [AWS Architecture Overview](#-aws-architecture-overview)
 - [Infrastructure Components](#-infrastructure-components)
 - [Network Architecture](#-network-architecture)
@@ -43,9 +48,121 @@
 | **Monitoring** | CloudWatch Container Insights, CloudWatch Logs |
 | **Infrastructure** | Terraform 1.0+ (HashiCorp Configuration Language) |
 
-## AWS Architecture Overview
+## Quick Start Guide
 
-### High-Level Architecture Diagram
+### Prerequisites
+
+- **AWS Account** with administrative access
+- **AWS CLI** configured (`aws configure`)
+- **Terraform** v1.0 or later ([install](https://developer.hashicorp.com/terraform/downloads))
+- **Docker** installed ([install](https://docs.docker.com/get-docker/))
+- **SSH Key Pair** created in AWS EC2 Console
+- **Your Public IP** (`curl ifconfig.me`)
+
+### Step-by-Step Deployment
+
+#### 1. Clone Repository
+
+```bash
+git clone https://github.com/tasbirul/Keeps-Light.git
+cd Keeps-Light
+```
+
+#### 2. Configure Terraform Variables
+
+```bash
+cd terraform
+cp terraform.tfvars.example terraform.tfvars
+```
+
+Edit `terraform.tfvars`:
+
+```hcl
+aws_region   = "us-east-1"
+project_name = "keeps-light"
+db_password  = "YourSecurePassword123!"  # Change this!
+my_ip        = "1.2.3.4/32"              # Your actual IP
+key_name     = "your-aws-key-pair-name"
+```
+
+#### 3. Initialize Terraform
+
+```bash
+terraform init
+
+# Expected output:
+# Terraform has been successfully initialized!
+```
+
+#### 4. Create ECR Repository
+
+```bash
+terraform apply -target=aws_ecr_repository.keeps_light
+
+# Review plan and type 'yes' to confirm
+```
+
+#### 5. Build and Push Docker Image
+
+```bash
+# Get ECR repository URL
+export ECR_URL=$(terraform output -raw ecr_repository_url)
+echo $ECR_URL
+
+# Login to ECR
+aws ecr get-login-password --region us-east-1 | \
+  docker login --username AWS --password-stdin $ECR_URL
+
+# Build Docker image
+cd ..  # Return to project root
+docker build -t keeps-light:latest .
+
+# Tag image
+docker tag keeps-light:latest $ECR_URL:latest
+
+# Push to ECR
+docker push $ECR_URL:latest
+```
+
+#### 6. Deploy Full Infrastructure
+
+```bash
+cd terraform
+terraform apply
+
+# Review the plan (should show ~30 resources to create)
+# Type 'yes' to confirm
+
+# Deployment takes approximately 8-10 minutes
+# Primary wait: RDS database creation (5-7 min)
+```
+
+#### 7. Access Your Application
+
+```bash
+# Get ALB DNS name
+terraform output alb_dns_name
+
+# Output example: keeps-light-alb-1234567890.us-east-1.elb.amazonaws.com
+```
+
+Open in browser: `http://<ALB_DNS_NAME>`
+
+#### 8. Verify Deployment
+
+```bash
+# Check ECS service status
+aws ecs describe-services \
+  --cluster keeps-light-cluster \
+  --services keeps-light-service \
+  --query 'services[0].{Status:status,Running:runningCount,Desired:desiredCount}'
+
+# Check target health
+aws elbv2 describe-target-health \
+  --target-group-arn $(terraform output -raw target_group_arn)
+```
+
+## AWS Architecture Overview
 
 ### Data Flow
 
@@ -386,6 +503,261 @@ Permissions:
   - Pull container images from ECR
   - Send CloudWatch metrics and logs
 ```
+
+## Deployment Strategy
+
+### Container-Based Deployment Pipeline
+
+```
+┌─────────────┐     ┌─────────────┐     ┌─────────────┐     ┌─────────────┐
+│   Source    │     │    Build    │     │   Push to   │     │   Deploy    │
+│   Code      │ --> │   Docker    │ --> │     ECR     │ --> │   to ECS    │
+│  (GitHub)   │     │   Image     │     │             │     │             │
+└─────────────┘     └─────────────┘     └─────────────┘     └─────────────┘
+```
+
+### Deployment Steps
+
+#### Phase 1: Infrastructure Provisioning
+
+```bash
+# Initialize Terraform
+cd terraform
+terraform init
+
+# Create ECR repository first
+terraform apply -target=aws_ecr_repository.keeps_light
+```
+
+#### Phase 2: Container Image Build & Push
+
+```bash
+# Get ECR login credentials
+aws ecr get-login-password --region us-east-1 | \
+  docker login --username AWS --password-stdin <ECR_URL>
+
+# Build Docker image
+docker build -t keeps-light:latest .
+
+# Tag image
+docker tag keeps-light:latest <ECR_URL>:latest
+
+# Push to ECR
+docker push <ECR_URL>:latest
+```
+
+#### Phase 3: Full Infrastructure Deployment
+
+```bash
+# Deploy all resources
+terraform apply
+
+# Deployment time: ~8-10 minutes
+# Breakdown:
+#   - VPC & Networking: 1-2 min
+#   - RDS Database: 5-7 min
+#   - ECS Cluster & Service: 2-3 min
+```
+
+### Rolling Update Strategy
+
+When updating the application:
+
+1. **Build new Docker image** with updated code
+2. **Push to ECR** with `:latest` tag or versioned tag
+3. **Force new deployment**:
+
+   ```bash
+   aws ecs update-service \
+     --cluster keeps-light-cluster \
+     --service keeps-light-service \
+     --force-new-deployment
+   ```
+
+4. **ECS automatically**:
+   - Pulls new image from ECR
+   - Starts new tasks (up to 200% capacity)
+   - Waits for health checks
+   - Drains old tasks
+   - Terminates old tasks
+
+**Zero-Downtime Guarantee**:
+
+- Minimum healthy percent: 50%
+- Maximum percent: 200%
+- New tasks must pass health checks before old tasks terminate
+
+---
+
+## High Availability & Scalability
+
+### High Availability Design
+
+**Multi-AZ Deployment**:
+
+- ALB spans 2 availability zones (us-east-1a, us-east-1b)
+- ECS tasks distributed across AZs via Auto Scaling Group
+- RDS subnet group spans 2 AZs (Multi-AZ ready)
+
+**Failure Scenarios**:
+
+| Failure | Impact | Recovery |
+|---------|--------|----------|
+| Single ECS Task | No impact | ALB routes to healthy task, ECS starts replacement |
+| EC2 Instance | Minimal impact | ASG launches new instance, ECS reschedules tasks |
+| Availability Zone | Partial capacity | Traffic routes to healthy AZ, tasks start in other AZ |
+| RDS Failover | 60-120s downtime | RDS promotes standby (if Multi-AZ enabled) |
+
+### Scalability Mechanisms
+
+#### Application Tier Scaling
+
+**ECS Service Auto Scaling** (Optional - not yet configured):
+
+```hcl
+# Target Tracking Scaling Policy
+Metric: CPU Utilization
+Target: 70%
+Min Tasks: 2
+Max Tasks: 10
+Scale-out Cooldown: 60s
+Scale-in Cooldown: 300s
+```
+
+**EC2 Auto Scaling**:
+
+```hcl
+# ECS Capacity Provider Managed Scaling
+Target Capacity: 80%
+Min Instances: 1
+Max Instances: 2
+```
+
+#### Database Tier Scaling
+
+**Vertical Scaling**:
+
+- Change RDS instance class (db.t3.micro → db.t3.small/medium)
+- Minimal downtime (few minutes)
+
+**Read Replicas** (not implemented):
+
+- Add read replicas for read-heavy workloads
+- Offload read traffic from primary
+
+### Load Balancing
+
+**ALB Features**:
+
+- Layer 7 (HTTP/HTTPS) load balancing
+- Path-based routing (future: `/api/*` to backend, `/*` to frontend)
+- Health checks with automatic target removal
+- Cross-zone load balancing enabled by default
+- Connection draining (30s deregistration delay)
+
+---
+
+## Monitoring & Observability
+
+### CloudWatch Integration
+
+**Container Insights**:
+
+```hcl
+Cluster Setting: containerInsights = enabled
+
+Metrics Available:
+  - CPU utilization (cluster, service, task)
+  - Memory utilization
+  - Network throughput
+  - Task count
+  - Service deployment status
+```
+
+**CloudWatch Logs**:
+
+```
+Log Group: /ecs/keeps-light
+Log Streams: ecs/<task-id>
+Retention: Unlimited (default) - Configure retention for cost savings
+```
+
+**Application Logs**:
+
+- All `console.log()` statements from Node.js app
+- Health check responses
+- Database connection status
+- API request/response logs
+
+### Monitoring Best Practices
+
+**Recommended CloudWatch Alarms**:
+
+1. **High CPU Utilization**:
+
+   ```
+   Metric: CPUUtilization (ECS Service)
+   Threshold: > 80% for 5 minutes
+   Action: SNS notification + auto-scaling
+   ```
+
+2. **Unhealthy Target Count**:
+
+   ```
+   Metric: UnHealthyHostCount (Target Group)
+   Threshold: >= 1 for 2 minutes
+   Action: SNS notification
+   ```
+
+3. **RDS CPU**:
+
+   ```
+   Metric: CPUUtilization (RDS)
+   Threshold: > 80% for 5 minutes
+   Action: SNS notification
+   ```
+
+4. **RDS Storage**:
+
+   ```
+   Metric: FreeStorageSpace (RDS)
+   Threshold: < 2 GB
+   Action: SNS notification
+   ```
+
+### Logging Architecture
+
+```
+┌─────────────────┐
+│  ECS Tasks      │
+│  (Node.js App)  │
+└────────┬────────┘
+         │ awslogs driver
+         ▼
+┌─────────────────────┐
+│  CloudWatch Logs    │
+│  /ecs/keeps-light   │
+└────────┬────────────┘
+         │
+         ├───► CloudWatch Insights (query & analyze)
+         ├───► CloudWatch Alarms (alerts)
+         └───► S3 Export (long-term retention)
+```
+
+**Useful CloudWatch Insights Queries**:
+
+```sql
+# Find all errors
+fields @timestamp, @message
+| filter @message like /error/i
+| sort @timestamp desc
+| limit 100
+
+# Count requests per minute
+fields @timestamp
+| filter @message like /GET|POST|PUT|DELETE/
+| stats count() by bin(5m)
+
 
 ## Acknowledgments
 
