@@ -9,7 +9,7 @@
 
 ## Architecture Diagram
 
-![Architecture Diagram](assets/architecture.png)
+![Architecture Diagram](assets/keeps_light_aws_architecture.png)
 
 ## Table of Contents
 
