@@ -9,7 +9,7 @@
 
 ## Architecture Diagram
 
-![Architecture Diagram](./assets/architecture.png)
+![Architecture Diagram](assets/architecture.png)
 
 ## Table of Contents
 
